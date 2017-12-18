@@ -92,14 +92,6 @@ abstract public class TermEntry implements Comparable<TermEntry> {
 	}
 
 	/**
-	** Returns whether the parts of this TermEntry other than the subject are equal
-	**
-	** Subclasses '''must overridde this method'' to use information
-	** specific to the subclass.
-	*/
-	public abstract boolean equalsTarget(TermEntry entry);
-
-	/**
 	** {@inheritDoc}
 	**
 	** This implementation XORs the hashcode of {@link #subj} and {@link #rel}.
