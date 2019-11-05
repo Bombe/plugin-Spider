@@ -17,19 +17,6 @@ configurations {
     compile.extendsFrom provided
 }
 
-sourceSets {
-    main {
-        java {
-            srcDir 'src'
-        }
-    }
-    test {
-        java {
-            srcDir 'test'
-        }
-    }
-} 
- 
 dependencies {
     provided group: 'org.freenetproject', name: 'fred', version: '0.7.5.1475'
     provided group: 'org.freenetproject', name: 'freenet-ext', version: '29'
