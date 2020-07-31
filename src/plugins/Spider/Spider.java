@@ -38,8 +38,6 @@ import plugins.Spider.org.garret.perst.Storage;
 import plugins.Spider.org.garret.perst.StorageFactory;
 import plugins.Spider.web.WebInterface;
 
-import com.db4o.ObjectContainer;
-
 import freenet.client.ClientMetadata;
 import freenet.client.FetchContext;
 import freenet.client.FetchException;
@@ -69,7 +67,7 @@ import freenet.support.api.Bucket;
 import freenet.support.io.Closer;
 import freenet.support.io.NativeThread;
 import freenet.support.io.NullBucket;
-import freenet.support.io.NullBucketFactory;
+import freenet.support.io.ResumeFailedException;
 
 /**
  * Spider. Produces xml index for searching words. 
@@ -91,8 +89,13 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 	protected Set<String> allowedMIMETypes;
 
 	static int dbVersion = 45;
-	static int version = 51;
+	static int version = 52;
 
+	/** We use the standard http://127.0.0.1:8888/ for parsing HTML regardless of what the local
+	 * interface is actually configured to be. This will not affect the extracted FreenetURI's,
+	 * and if it did it would be a security risk. */
+	static final String ROOT_URI = "http://127.0.0.1:8888/";
+	
 	public static final String pluginName = "Spider " + version;
 
 	public String getVersion() {
@@ -243,10 +246,10 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 
 		for (ClientGetter g : toStart) {
 			try {
-				g.start(null, clientContext);
+				g.start(clientContext);
 				Logger.minor(this, g + " started");
 			} catch (FetchException e) {
-				g.getClientCallback().onFailure(e, g, null);
+				g.getClientCallback().onFailure(e, g);
 			}
 		}
 	}
@@ -261,14 +264,16 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 			this.page = page;
 		}
 
-		public void onFailure(FetchException e, ClientGetter state, ObjectContainer container) {
+        @Override
+		public void onFailure(FetchException e, ClientGetter state) {
 			if (stopped) return;
 
 			callbackExecutor.execute(new OnFailureCallback(e, state, page));
 			Logger.minor(this, "Queued OnFailure: " + page + " (q:" + callbackExecutor.getQueue().size() + ")");
 		}
 
-		public void onSuccess(final FetchResult result, final ClientGetter state, ObjectContainer container) {
+        @Override
+		public void onSuccess(final FetchResult result, final ClientGetter state) {
 			if (stopped) return;
 
 			callbackExecutor.execute(new OnSuccessCallback(result, state, page));
@@ -279,14 +284,20 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 			return super.toString() + ":" + page;
 		}
 
-		public void onMajorProgress(ObjectContainer container) {
-		}
+        @Override
+        public void onResume(ClientContext context) throws ResumeFailedException {
+        }
+
+        @Override
+        public RequestClient getRequestClient() {
+            return Spider.this;
+        }
 	}
 
 	private ClientGetter makeGetter(Page page) throws MalformedURLException {
 		ClientGetter getter = new ClientGetter(new ClientGetterCallback(page),
 				new FreenetURI(page.getURI()), ctx,
-				getPollingPriorityProgress(), this, null, null, null);
+				getPollingPriorityProgress(), null);
 		return getter;
 	}
 
@@ -431,15 +442,15 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 				if (!"text/plain".equals(mimeType)) {
 					filterInput = data.getInputStream();
 					filterOutput = new NullBucket().getOutputStream();
-					ContentFilter.filter(filterInput, filterOutput, mimeType,
-							uri.toURI("http://127.0.0.1:8888/"), pageCallBack, null, null);
+					ContentFilter.filter(filterInput, filterOutput, mimeType, uri.toURI(ROOT_URI), pageCallBack, 
+					        null, null);
 					filterInput.close();
 					filterOutput.close();
 				} else {
 					BufferedReader br = new BufferedReader(new InputStreamReader(data.getInputStream()));
 					String line;
 					while((line = br.readLine())!=null) {
-						pageCallBack.onText(line, mimeType, uri.toURI("http://127.0.0.1:8888/"));
+						pageCallBack.onText(line, mimeType, uri.toURI(ROOT_URI));
 					}
 				}
 				pageCallBack.finish();
@@ -551,7 +562,7 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 			for (Map.Entry<Page, ClientGetter> me : runningFetch.entrySet()) {
 				ClientGetter getter = me.getValue();
 				Logger.minor(this, "Canceling request" + getter);
-				getter.cancel(null, clientContext);
+				getter.cancel(clientContext);
 			}
 			runningFetch.clear();
 			callbackExecutor.shutdownNow();
@@ -633,6 +644,7 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 			//Logger.normal(this, "Parsing "+page.getURI());
 		}
 
+		@Override
 		public void foundURI(FreenetURI uri) {
 			// Ignore
 		}
@@ -642,6 +654,7 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 		 * @param uri
 		 * @param inline
 		 */
+		@Override
 		public void foundURI(FreenetURI uri, boolean inline) {
 			if (stopped) throw new RuntimeException("plugin stopping");
 			if (logDEBUG) Logger.debug(this, "foundURI " + uri + " on " + page);
@@ -656,6 +669,7 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 		 * @param type
 		 * @param baseURI
 		 */
+		@Override
 		public void onText(String s, String type, URI baseURI){
 			if (stopped) throw new RuntimeException("plugin stopping");
 			if (logDEBUG) Logger.debug(this, "onText on " + page.getId() + " (" + baseURI + ")");
@@ -685,7 +699,7 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 						addWord(word, Integer.MIN_VALUE + i); // Put title words in the right order starting at Min_Value
 				} catch (Exception e) {
 					// If a word fails continue
-					Logger.error(this, "Word failed: "+e, e);
+					Logger.error(this, "Word '" + word + "' failed: "+e, e);
 				} 
 				i++;
 			}
@@ -745,7 +759,8 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 		}
 	}
 
-	public void onFoundEdition(long l, USK key, ObjectContainer container, ClientContext context, boolean metadata,
+    @Override
+	public void onFoundEdition(long l, USK key, ClientContext context, boolean metadata,
             short codec, byte[] data, boolean newKnownGood, boolean newSlotToo) {
 		FreenetURI uri = key.getURI();
 		/*-
@@ -760,10 +775,12 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 		startSomeRequests();
 	}
 
+    @Override
 	public short getPollingPriorityNormal() {
-		return (short) Math.min(RequestStarter.MINIMUM_PRIORITY_CLASS, getRoot().getConfig().getRequestPriority() + 1);
+		return (short) Math.min(RequestStarter.MINIMUM_FETCHABLE_PRIORITY_CLASS, getRoot().getConfig().getRequestPriority() + 1);
 	}
 
+    @Override
 	public short getPollingPriorityProgress() {
 		return getRoot().getConfig().getRequestPriority();
 	}
@@ -800,11 +817,13 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 	// language for I10N
 	private LANGUAGE language;
 
+    @Override
 	public String getString(String key) {
 		// TODO return a translated string
 		return key;
 	}
 
+    @Override
 	public void setLanguage(LANGUAGE newLanguage) {
 		language = newLanguage;
 	}
@@ -823,12 +842,9 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 		return pr;
 	}
 
+    @Override
 	public boolean persistent() {
 		return false;
-	}
-
-	public void removeFrom(ObjectContainer container) {
-		throw new UnsupportedOperationException();
 	}
 
 	public void resetPages(Status from, Status to) {
