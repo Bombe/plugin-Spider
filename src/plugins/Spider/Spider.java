@@ -841,16 +841,6 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 		return pr;
 	}
 
-	public void resetPages(Status from, Status to) {
-		int count = 0;
-		Iterator<Page> pages = getRoot().getPages(from);
-		while(pages.hasNext()) {
-			pages.next().setStatus(to);
-			count++;
-		}
-		System.out.println("Reset "+count+" pages status from "+from+" to "+to);
-	}
-
 	public FreenetURI getURI() {
 		return librarybuffer.getURI();
 	}

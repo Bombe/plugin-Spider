@@ -16,7 +16,10 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.TreeMap;
+
+import plugins.Spider.db.Page;
 import plugins.Spider.index.TermEntryWriter;
 import plugins.Spider.index.TermPageEntry;
 import plugins.Spider.db.Status;
@@ -95,8 +98,18 @@ public class LibraryBuffer implements FredPluginTalker {
 	public void start() {
 		// Do in a transaction so it gets committed separately.
 		spider.db.beginThreadTransaction(Storage.EXCLUSIVE_TRANSACTION);
-		spider.resetPages(Status.NOT_PUSHED, Status.QUEUED);
+		resetPages(Status.NOT_PUSHED, Status.QUEUED);
 		spider.db.endThreadTransaction();
+	}
+
+	private void resetPages(Status from, Status to) {
+		int count = 0;
+		Iterator<Page> pages = spider.getRoot().getPages(from);
+		while (pages.hasNext()) {
+			pages.next().setStatus(to);
+			count++;
+		}
+		System.out.println("Reset " + count + " pages status from " + from + " to " + to);
 	}
 
 	/**
@@ -165,7 +178,7 @@ public class LibraryBuffer implements FredPluginTalker {
 			innerSend(bucket);
 			Logger.normal(this, "Buffer successfully sent to Library, size = "+bucket.size());
 			// Not a separate transaction, commit with the index updates.
-			spider.resetPages(Status.NOT_PUSHED, Status.INDEXED);
+			resetPages(Status.NOT_PUSHED, Status.INDEXED);
 		} catch (IOException ex) {
 			Logger.error(this, "Could not make bucket to transfer buffer", ex);
 		}
