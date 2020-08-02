@@ -4,6 +4,8 @@
 package plugins.Spider;
 
 import static java.lang.System.currentTimeMillis;
+import static java.util.Arrays.stream;
+import static java.util.stream.Collectors.toSet;
 import static plugins.Spider.SearchUtil.isStopWord;
 
 import java.io.BufferedReader;
@@ -17,12 +19,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -86,7 +86,11 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 	/**
 	 * Lists the allowed mime types of the fetched page. 
 	 */
-	protected Set<String> allowedMIMETypes;
+	private final String[] allowedMIMETypes = {
+			"text/html",
+			"text/plain",
+			"application/xhtml+xml"
+	};
 
 	static int dbVersion = 45;
 	static int version = 52;
@@ -580,11 +584,7 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 		ctx.maxNonSplitfileRetries = 1;
 		ctx.maxTempLength = 2 * 1024 * 1024;
 		ctx.maxOutputLength = 2 * 1024 * 1024;
-		allowedMIMETypes = new HashSet<String>();
-		allowedMIMETypes.add("text/html");
-		allowedMIMETypes.add("text/plain");
-		allowedMIMETypes.add("application/xhtml+xml");
-		ctx.allowedMIMETypes = new HashSet<String>(allowedMIMETypes);
+		ctx.allowedMIMETypes = stream(allowedMIMETypes).collect(toSet());
 		clientContext = pr.getNode().clientCore.clientContext;
 
 		stopped = false;
