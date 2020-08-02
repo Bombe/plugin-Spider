@@ -155,13 +155,14 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 	public void queueURI(FreenetURI uri, String comment, boolean force) {
 		String sURI = uri.toString();
 		String lowerCaseURI = sURI.toLowerCase(Locale.US);
-		for (String ext : getRoot().getConfig().getBadlistedExtensions()) {
+		Config config = getRoot().getConfig();
+		for (String ext : config.getBadlistedExtensions()) {
 			if (lowerCaseURI.endsWith(ext)) {
 				return; // be smart
 			}
 		}
-		
-		for(String keyword : getRoot().getConfig().getBadlistedKeywords()) {
+
+		for(String keyword : config.getBadlistedKeywords()) {
 			if(lowerCaseURI.indexOf(keyword.toLowerCase()) != -1) {
 				return; // Fascist keyword exclusion feature. Off by default!
 			}
