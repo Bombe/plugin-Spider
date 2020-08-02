@@ -54,7 +54,6 @@ import freenet.client.filter.UnsafeContentTypeException;
 import freenet.keys.FreenetURI;
 import freenet.keys.USK;
 import freenet.l10n.BaseL10n.LANGUAGE;
-import freenet.node.NodeClientCore;
 import freenet.node.RequestClient;
 import freenet.node.RequestStarter;
 import freenet.pluginmanager.FredPlugin;
@@ -111,7 +110,6 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 	private ClientContext clientContext;
 	private boolean stopped = true;
 
-	private NodeClientCore core;
 	private PageMaker pageMaker;	
 	private PluginRespirator pr;
 	private final RequestClient requestClient = new RequestClientBuilder().persistent(false).realTime(false).build();
@@ -584,7 +582,6 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 	 * @param pr
 	 */
 	public synchronized void runPlugin(PluginRespirator pr) {
-		this.core = pr.getNode().clientCore;
 		this.pr = pr;
 		pageMaker = pr.getPageMaker();
 
@@ -609,7 +606,7 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 		webInterface = new WebInterface(this, pr.getHLSimpleClient(), pr.getToadletContainer(), pr.getNode().clientCore);
 		webInterface.load();
 
-		FreenetURI[] initialURIs = core.getBookmarkURIs();
+		FreenetURI[] initialURIs = pr.getNode().clientCore.getBookmarkURIs();
 		for (int i = 0; i < initialURIs.length; i++) {
 			queueURI(initialURIs[i], "bookmark", false);
 		}
