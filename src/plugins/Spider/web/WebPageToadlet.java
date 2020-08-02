@@ -42,10 +42,7 @@ public abstract class WebPageToadlet<P extends WebPage> extends Toadlet {
 
 	@Override
 	public void handleMethodGET(URI uri, HTTPRequest httpRequest, ToadletContext toadletContext) throws ToadletContextClosedException, IOException {
-		ClassLoader origClassLoader = Thread.currentThread().getContextClassLoader();
-		Thread.currentThread().setContextClassLoader(Spider.class.getClassLoader());
-
-		try {
+		runWithContextClassLoader(Spider.class.getClassLoader(), () -> {
 			PageNode p = toadletContext.getPageMaker().getPageNode(Spider.pluginName, toadletContext);
 			HTMLNode pageNode = p.outer;
 			HTMLNode contentNode = p.content;
@@ -54,24 +51,19 @@ public abstract class WebPageToadlet<P extends WebPage> extends Toadlet {
 			page.writeContent(httpRequest, contentNode);
 
 			writeHTMLReply(toadletContext, 200, "OK", null, pageNode.generate());
-		} finally {
-			Thread.currentThread().setContextClassLoader(origClassLoader);
-		}
+		});
 	}
 
 	public void handleMethodPOST(URI uri, HTTPRequest request, final ToadletContext ctx) throws ToadletContextClosedException, IOException {
-		ClassLoader origClassLoader = Thread.currentThread().getContextClassLoader();
-		Thread.currentThread().setContextClassLoader(Spider.class.getClassLoader());
+		runWithContextClassLoader(Spider.class.getClassLoader(), () -> {
+			String formPassword = request.getPartAsString("formPassword", 32);
+			if ((formPassword == null) || !formPassword.equals(core.formPassword)) {
+				MultiValueTable<String, String> headers = new MultiValueTable<String, String>();
+				headers.put("Location", "/spider/config");
+				ctx.sendReplyHeaders(302, "Found", headers, null, 0);
+				return;
+			}
 
-		String formPassword = request.getPartAsString("formPassword", 32);
-		if ((formPassword == null) || !formPassword.equals(core.formPassword)) {
-			MultiValueTable<String, String> headers = new MultiValueTable<String, String>();
-			headers.put("Location", "/spider/config");
-			ctx.sendReplyHeaders(302, "Found", headers, null, 0);
-			return;
-		}
-
-		try {
 			PageNode p = ctx.getPageMaker().getPageNode(Spider.pluginName, ctx);
 			HTMLNode pageNode = p.outer;
 			HTMLNode contentNode = p.content;
@@ -81,9 +73,21 @@ public abstract class WebPageToadlet<P extends WebPage> extends Toadlet {
 			page.writeContent(request, contentNode);
 
 			writeHTMLReply(ctx, 200, "OK", null, pageNode.generate());
+		});
+	}
+
+	private void runWithContextClassLoader(ClassLoader classLoader, ToadletRunnable toadletRunnable) throws ToadletContextClosedException, IOException {
+		ClassLoader origClassLoader = Thread.currentThread().getContextClassLoader();
+		Thread.currentThread().setContextClassLoader(classLoader);
+		try {
+			toadletRunnable.run();
 		} finally {
 			Thread.currentThread().setContextClassLoader(origClassLoader);
 		}
+	}
+
+	private interface ToadletRunnable {
+		void run() throws ToadletContextClosedException, IOException;
 	}
 
 }
