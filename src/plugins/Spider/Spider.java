@@ -142,10 +142,6 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 		return getRoot().getConfig();
 	}
 
-	public boolean isGarbageCollecting() {
-		return garbageCollecting;
-	}
-
 	// Set config asynchronously
 	public void setConfig(Config config) {
 		getRoot().setConfig(config); // hack -- may cause race condition. but this is more user friendly
@@ -539,9 +535,7 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 		}
 
 		startSomeRequests();
-	} 
-
-	private boolean garbageCollecting = false;
+	}
 
 	/**
 	 * Stop the plugin, pausing any writing which is happening
