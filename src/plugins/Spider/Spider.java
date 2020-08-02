@@ -179,24 +179,17 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 		}
 
 		db.beginThreadTransaction(Storage.EXCLUSIVE_TRANSACTION);
-		boolean dbTransactionEnded = false;
 		try {
 			Page page = getRoot().getPageByURI(uri, true, comment);
 			if (force && page.getStatus() != Status.QUEUED) {
 				page.setStatus(Status.QUEUED);
 				page.setComment(comment);
 			}
-
 			db.endThreadTransaction();
-			dbTransactionEnded = true;
 		} catch (RuntimeException e) {
-			Logger.error(this, "Runtime Exception: " + e, e);		
+			Logger.error(this, "Runtime Exception, rolling back: " + e, e);
+			db.rollbackThreadTransaction();
 			throw e;
-		} finally {
-			if (!dbTransactionEnded) {
-				Logger.minor(this, "rollback transaction", new Exception("debug"));
-				db.rollbackThreadTransaction();
-			}
 		}
 	}
 
@@ -516,7 +509,6 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 		}
 
 		lastRequestFinishedAt.set(currentTimeMillis());
-		boolean dbTransactionEnded = false;
 		db.beginThreadTransaction(Storage.EXCLUSIVE_TRANSACTION);
 		try {
 			synchronized (page) {
@@ -533,16 +525,12 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 				}
 			}
 			db.endThreadTransaction();
-			dbTransactionEnded = true;
 		} catch (Exception e) {
-			Logger.error(this, "Unexcepected exception in onFailure(): " + e, e);
+			Logger.error(this, "Unexcepected exception in onFailure(), rolling back: " + e, e);
+			db.rollbackThreadTransaction();
 			throw new RuntimeException("Unexcepected exception in onFailure()", e);
 		} finally {
 			runningFetch.remove(page);
-			if (!dbTransactionEnded) {
-				Logger.minor(this, "rollback transaction", new Exception("debug"));
-				db.rollbackThreadTransaction();
-			}
 		}
 
 		startSomeRequests();
