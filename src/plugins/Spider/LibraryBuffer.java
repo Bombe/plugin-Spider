@@ -98,18 +98,18 @@ public class LibraryBuffer implements FredPluginTalker {
 	public void start() {
 		// Do in a transaction so it gets committed separately.
 		spider.db.beginThreadTransaction(Storage.EXCLUSIVE_TRANSACTION);
-		resetPages(Status.NOT_PUSHED, Status.QUEUED);
+		resetNotPushedPagesTo(Status.QUEUED);
 		spider.db.endThreadTransaction();
 	}
 
-	private void resetPages(Status from, Status to) {
+	private void resetNotPushedPagesTo(Status status) {
 		int count = 0;
-		Iterator<Page> pages = spider.getRoot().getPages(from);
+		Iterator<Page> pages = spider.getRoot().getPages(Status.NOT_PUSHED);
 		while (pages.hasNext()) {
-			pages.next().setStatus(to);
+			pages.next().setStatus(status);
 			count++;
 		}
-		System.out.println("Reset " + count + " pages status from " + from + " to " + to);
+		System.out.println("Reset " + count + " pages status from " + Status.NOT_PUSHED + " to " + status);
 	}
 
 	/**
@@ -178,7 +178,7 @@ public class LibraryBuffer implements FredPluginTalker {
 			innerSend(bucket);
 			Logger.normal(this, "Buffer successfully sent to Library, size = "+bucket.size());
 			// Not a separate transaction, commit with the index updates.
-			resetPages(Status.NOT_PUSHED, Status.INDEXED);
+			resetNotPushedPagesTo(Status.INDEXED);
 		} catch (IOException ex) {
 			Logger.error(this, "Could not make bucket to transfer buffer", ex);
 		}
