@@ -29,6 +29,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import freenet.node.RequestClientBuilder;
 import plugins.Spider.index.TermPageEntry;
 import plugins.Spider.db.Config;
 import plugins.Spider.db.Page;
@@ -78,7 +79,7 @@ import freenet.support.io.ResumeFailedException;
  *  
  */
 public class Spider implements FredPlugin, FredPluginThreadless,
-		FredPluginVersioned, FredPluginRealVersioned, FredPluginL10n, USKCallback, RequestClient {
+		FredPluginVersioned, FredPluginRealVersioned, FredPluginL10n, USKCallback {
 
 	/** Document ID of fetching documents */
 	protected Map<Page, ClientGetter> runningFetch = Collections.synchronizedMap(new HashMap<Page, ClientGetter>());
@@ -113,6 +114,7 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 	private NodeClientCore core;
 	private PageMaker pageMaker;	
 	private PluginRespirator pr;
+	private final RequestClient requestClient = new RequestClientBuilder().persistent(false).realTime(false).build();
 
 	private LibraryBuffer librarybuffer;
 
@@ -173,7 +175,7 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 			}
 			try {
 				uri = ((USK.create(uri)).getSSK()).getURI();
-				(clientContext.uskManager).subscribe(USK.create(uri), this, false, this);
+				(clientContext.uskManager).subscribe(USK.create(uri), this, false, requestClient);
 			} catch (Exception e) {
 			}
 		}
@@ -290,7 +292,7 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 
         @Override
         public RequestClient getRequestClient() {
-            return Spider.this;
+            return requestClient;
         }
 	}
 
@@ -842,11 +844,6 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 		return pr;
 	}
 
-    @Override
-	public boolean persistent() {
-		return false;
-	}
-
 	public void resetPages(Status from, Status to) {
 		int count = 0;
 		Iterator<Page> pages = getRoot().getPages(from);
@@ -855,10 +852,6 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 			count++;
 		}
 		System.out.println("Reset "+count+" pages status from "+from+" to "+to);
-	}
-
-	public boolean realTimeFlag() {
-		return false; // We definitely want throughput here.
 	}
 
 	public FreenetURI getURI() {
