@@ -81,7 +81,7 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 		FredPluginVersioned, FredPluginRealVersioned, FredPluginL10n, USKCallback {
 
 	/** Document ID of fetching documents */
-	protected Map<Page, ClientGetter> runningFetch = Collections.synchronizedMap(new HashMap<Page, ClientGetter>());
+	private final Map<Page, ClientGetter> runningFetch = Collections.synchronizedMap(new HashMap<>());
 
 	/**
 	 * Lists the allowed mime types of the fetched page. 
