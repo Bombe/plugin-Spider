@@ -719,7 +719,7 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 			}
 		}
 
-		HashMap<String, TermPageEntry> tpes = new HashMap();
+		HashMap<String, TermPageEntry> tpes = new HashMap<>();
 
 		/**
 		 * Add a word to the database for this page

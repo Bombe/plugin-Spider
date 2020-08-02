@@ -201,7 +201,7 @@ class MainPage implements WebPage {
 			Iterator<Page> it = root.getPages(status);
 
 			int showURI = spider.getConfig().getMaxShownURIs();
-			List<Page> page = new ArrayList();
+			List<Page> page = new ArrayList<>();
 			while (page.size() < showURI && it.hasNext()) {
 				page.add(it.next());
 			}

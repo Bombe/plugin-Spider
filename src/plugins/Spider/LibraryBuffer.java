@@ -42,7 +42,7 @@ public class LibraryBuffer implements FredPluginTalker {
 	private FreenetURI lastURI;
 	private boolean badURI;
 
-	private TreeMap<TermPageEntry, TermPageEntry> termPageBuffer = new TreeMap();
+	private TreeMap<TermPageEntry, TermPageEntry> termPageBuffer = new TreeMap<>();
 	// Garbage collection behaving perversely. Lets try moving stuff into instance members.
 	private Collection<TermPageEntry> pushing = null;
 
@@ -70,13 +70,13 @@ public class LibraryBuffer implements FredPluginTalker {
 				}
 				pushing = termPageBuffer.values();
 				push = true;
-				termPageBuffer = new TreeMap();
+				termPageBuffer = new TreeMap<>();
 				bufferUsageEstimate = 0;
 			}
 		}
 		if(push) sendBuffer();
 	}
-	
+
 	/**
 	 * Increments the estimate by specified amount.
 	 * @param increment
@@ -275,7 +275,7 @@ public class LibraryBuffer implements FredPluginTalker {
 			}
 			shutdown = true;
 			pushing = termPageBuffer.values();
-			termPageBuffer = new TreeMap();
+			termPageBuffer = new TreeMap<>();
 			bufferUsageEstimate = 0;
 		}
 		System.out.println("Writing pending data to "+SAVE_FILE);
