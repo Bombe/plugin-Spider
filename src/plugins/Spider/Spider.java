@@ -607,8 +607,8 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 		webInterface.load();
 
 		FreenetURI[] initialURIs = pr.getNode().clientCore.getBookmarkURIs();
-		for (int i = 0; i < initialURIs.length; i++) {
-			queueURI(initialURIs[i], "bookmark", false);
+		for (FreenetURI urIs : initialURIs) {
+			queueURI(urIs, "bookmark", false);
 		}
 
 		librarybuffer = new LibraryBuffer(pr, this);
