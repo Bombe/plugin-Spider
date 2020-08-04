@@ -543,6 +543,9 @@ public class Spider implements FredPlugin, FredPluginThreadless,
 	public void terminate(){
 		Logger.normal(this, "Spider terminating");
 
+		// we need our class loader for Perst stuff
+		Thread.currentThread().setContextClassLoader(Spider.class.getClassLoader());
+
 		synchronized (this) {
 			stopped = true;
 
