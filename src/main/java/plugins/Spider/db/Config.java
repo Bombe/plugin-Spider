@@ -130,7 +130,7 @@ public class Config extends Persistent implements Cloneable {
 	}
 
 	public synchronized int getMaxParallelRequests() {
-		int actualHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+		int actualHour = getCurrentHour();
 		Boolean isWorking = true;
 
 		if(this.getBeginWorkingPeriod() < this.getEndWorkingPeriod()) {
@@ -150,6 +150,10 @@ public class Config extends Persistent implements Cloneable {
 		} else {
 			return this.getMaxParallelRequestsNonWorking();
 		}
+	}
+
+	protected int getCurrentHour() {
+		return Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
 	}
 
 	public synchronized void setBeginWorkingPeriod(int beginWorkingPeriod) {
